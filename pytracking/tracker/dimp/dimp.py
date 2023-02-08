@@ -152,6 +152,9 @@ class DiMP(BaseTracker):
 
         score_map = s[scale_ind, ...]
         max_score = torch.max(score_map).item()
+        
+        # calculate PSR
+        psr = (max_score - torch.mean(score_map).item()) / (torch.std(score_map, unbiased=False).item() + 1e-6)
 
         # Visualize and set debug info
         self.search_area_box = torch.cat((sample_coords[scale_ind,[1,0]], sample_coords[scale_ind,[3,2]] - sample_coords[scale_ind,[1,0]] - 1))
@@ -171,7 +174,7 @@ class DiMP(BaseTracker):
         else:
             output_state = new_state.tolist()
 
-        out = {'target_bbox': output_state, 'score': max_score}
+        out = {'target_bbox': output_state, 'score': max_score, 'psr': psr}
         return out
 
 
