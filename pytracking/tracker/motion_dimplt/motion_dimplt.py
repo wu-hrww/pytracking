@@ -679,6 +679,13 @@ class MotionDiMPLT(DiMPLT):
 
         # img_disp = image.copy()
         # red = cv2.bitwise_and(img_disp, img_disp, mask=mask)
+        # name = np.random.rand()
+        # cv2.imwrite(
+        #     '/media/wuhr/data/platoon_dataset/2022_10_20/evaluation/2d/vis/{}.png'.format(
+        #         name), img_disp)
+        # cv2.imwrite(
+        #     '/media/wuhr/data/platoon_dataset/2022_10_20/evaluation/2d/vis/red_{}.png'.format(
+        #         name), red)
         # cv2.imshow('red', red)
         # cv2.waitKey(1)
 
