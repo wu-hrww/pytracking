@@ -58,8 +58,8 @@ def parameters():
     params.box_jitter_pos = 0.1             # How much to jitter the translation for random boxes
     params.box_jitter_sz = 0.5              # How much to jitter the scale for random boxes
     params.maximal_aspect_ratio = 6         # Limit on the aspect ratio
-    params.box_refinement_iter = 10          # Number of iterations for refining the boxes
-    params.box_refinement_step_length = 2.5e-3 # 1   # Gradient step length in the bounding box refinement
+    params.box_refinement_iter = 3          # Number of iterations for refining the boxes # 10
+    params.box_refinement_step_length = 4e-3 # 2.5e-3   # Gradient step length in the bounding box refinement
     params.box_refinement_step_decay = 1    # Multiplicative step length decay (1 means no decay)
 
     params.net = NetWithBackbone(net_path='dimp18.pth',

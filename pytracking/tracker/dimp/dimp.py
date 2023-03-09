@@ -101,7 +101,7 @@ class DiMP(BaseTracker):
         im = numpy_to_torch(image)
 
         # ------- LOCALIZATION ------- #
-
+        t_s = time.time()
         # Extract backbone features
         backbone_feat, sample_coords, im_patches = self.extract_backbone_features(im, self.get_centered_sample_pos(),
                                                                       self.target_scale * self.params.scale_factors,
@@ -118,8 +118,12 @@ class DiMP(BaseTracker):
         # Localize the target
         translation_vec, scale_ind, s, flag = self.localize_target(scores_raw, sample_pos, sample_scales)
         new_pos = sample_pos[scale_ind,:] + translation_vec
+        
+        t_e = time.time()
+        print('short-term tracking cost {} sec'.format(t_e - t_s))
 
         # Update position and scale
+        t_s = time.time()
         if flag != 'not_found':
             if self.params.get('use_iou_net', True):
                 update_scale_flag = self.params.get('update_scale_when_uncertain', True) or flag != 'uncertain'
@@ -128,10 +132,11 @@ class DiMP(BaseTracker):
                 self.refine_target_box(backbone_feat, sample_pos[scale_ind,:], sample_scales[scale_ind], scale_ind, update_scale_flag)
             elif self.params.get('use_classifier', True):
                 self.update_state(new_pos, sample_scales[scale_ind])
+        t_e = time.time()
+        print('update position and scale cost {} sec'.format(t_e - t_s))
 
 
         # ------- UPDATE ------- #
-
         update_flag = flag not in ['not_found', 'uncertain']
         hard_negative = (flag == 'hard_negative')
         learning_rate = self.params.get('hard_negative_learning_rate', None) if hard_negative else None

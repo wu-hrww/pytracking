@@ -60,6 +60,7 @@ class MotionDiMPLT(DiMPLT):
             print('normal tracking')
 
             if self.params.get('erasing_mode', False) and self.cnt_track % self.params.get('erasing_cnt', 1) == 0:
+                t_s = time.time()
                 backbone_feat, sample_coords, im_patches = self.extract_backbone_features_with_erasing(im,
                                                                                                        self.get_centered_sample_pos(),
                                                                                                        self.target_scale * self.params.scale_factors,
@@ -78,10 +79,12 @@ class MotionDiMPLT(DiMPLT):
                         original_scores_raw, sample_pos, sample_scales)
                 new_pos = sample_pos[scale_ind, :] + translation_vec
 
+                t_e = time.time()
+                print('enhanced short-term tracking costs {} sec'.format(t_e - t_s))
             else:
                 # original
                 # Extract backbone features
-
+                t_s = time.time()
                 backbone_feat, sample_coords, im_patches = self.extract_backbone_features(im, self.get_centered_sample_pos(),
                                                                                           self.target_scale * self.params.scale_factors,
                                                                                           self.img_sample_sz)
@@ -100,6 +103,9 @@ class MotionDiMPLT(DiMPLT):
                 translation_vec, scale_ind, s, flag = self.localize_target(
                     scores_raw, sample_pos, sample_scales)
                 new_pos = sample_pos[scale_ind, :] + translation_vec
+                
+                t_e = time.time()
+                print('original short-term tracking costs {} sec'.format(t_e - t_s))
 
             if self.params.get('redetection_now', False) and flag == 'not_found':
                 self.search_global = False
@@ -108,6 +114,7 @@ class MotionDiMPLT(DiMPLT):
                 # self.cnt_empty = 1
 
         # [---------------- Global re-detection with random property (new) ----------------]
+        t_s = time.time()
         if self.search_global or self.search_random:
             # find candidate (global: sliding window, random: random window
             print('re-detection')
@@ -321,8 +328,11 @@ class MotionDiMPLT(DiMPLT):
                 s = list_s[find_i]
                 flag = list_flag[find_i]
                 new_pos = list_new_pos[find_i]
-
+        t_e = time.time()
+        print('re-detection costs {} sec'.format(t_e - t_s))
+        
         # Update position and scale
+        t_s = time.time()
         if flag != 'not_found':
             if self.params.get('use_iou_net', True):
                 update_scale_flag = self.params.get(
@@ -333,13 +343,16 @@ class MotionDiMPLT(DiMPLT):
                     backbone_feat, sample_pos[scale_ind, :], sample_scales[scale_ind], scale_ind, update_scale_flag)
             elif self.params.get('use_classifier', True):
                 self.update_state(new_pos, sample_scales[scale_ind])
+        t_e = time.time()
+        print('update position and scale costs {} sec'.format(t_e - t_s))
 
         # ------- UPDATE ------- #
+        t_s = time.time()
         update_flag = flag not in ['not_found', 'uncertain']
         hard_negative = (flag == 'hard_negative')
         learning_rate = self.params.get(
             'hard_negative_learning_rate', None) if hard_negative else None
-
+        
         if update_flag and self.params.get('update_classifier', False):
             # early sample (redetected) is not updated
             if self.cnt_track >= self.params.get('no_update_early_redetection', 0):
@@ -438,6 +451,8 @@ class MotionDiMPLT(DiMPLT):
                 else:
                     self.update_classifier(
                         train_x, target_box, learning_rate, s[scale_ind, ...])
+        t_e = time.time()
+        print('update classifier cost {} sec'.format(t_e - t_s))
 
         # Set the pos of the tracker to iounet pos
         if self.params.get('use_iou_net', True) and flag != 'not_found' and hasattr(self, 'pos_iounet'):
