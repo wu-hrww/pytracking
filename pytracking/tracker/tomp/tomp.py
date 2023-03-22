@@ -140,6 +140,7 @@ class ToMP(BaseTracker):
         return reg_targets_per_im
 
     def track(self, image, info: dict = None) -> dict:
+        tic = time.time()
         self.debug_info = {}
 
         self.frame_num += 1
@@ -207,9 +208,13 @@ class ToMP(BaseTracker):
             output_state = [-1, -1, -1, -1]
         else:
             output_state = new_state.tolist()
+        
+        toc = time.time()
 
         out = {'target_bbox': output_state,
-               'object_presence_score': score_map.max().cpu().item()}
+               'object_presence_score': score_map.max().cpu().item(),
+               'score': score_map.max().cpu().item(),
+               'time': toc - tic}
 
         if self.visdom is not None:
             self.visualize_raw_results(score_map)

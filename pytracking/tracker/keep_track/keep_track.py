@@ -114,6 +114,7 @@ class KeepTrack(BaseTracker):
         return out
 
     def track(self, image, info: dict = None) -> dict:
+        tic = time.time()
         self.debug_info = {}
 
         self.frame_num += 1
@@ -206,9 +207,12 @@ class KeepTrack(BaseTracker):
         else:
             output_state = new_state.tolist()
 
+        toc = time.time()
         out = {
             'target_bbox': output_state,
-            'object_presence_score': object_presence_score.cpu().item()
+            'object_presence_score': object_presence_score.cpu().item(),
+            'score': object_presence_score.cpu().item(),
+            'time': toc - tic
         }
 
         if self.visdom is not None:

@@ -696,8 +696,10 @@ class DiMPLT(BaseTracker):
         im_patches, patch_coords = sample_patch_multiscale(im, pos, scales, sz,
                                                            mode=self.params.get('border_mode', 'replicate'),
                                                            max_scale_change=self.params.get('patch_max_scale_change', None))
+        tic = time.time()
         with torch.no_grad():
             backbone_feat = self.net.extract_backbone(im_patches)
+        toc = time.time()
         return backbone_feat, patch_coords, im_patches
 
     def extract_backbone_features_with_multiple_search(self, im: torch.Tensor, pos: torch.Tensor, scales, sz: torch.Tensor):

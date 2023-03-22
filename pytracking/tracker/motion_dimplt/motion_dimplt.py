@@ -26,6 +26,8 @@ class MotionDiMPLT(DiMPLT):
         """
         info: {'lost': bool, 'motion_feedback'}
         """
+        torch.cuda.synchronize()
+        t_first = time.time()
         if not hasattr(self, '_cam_K') or not hasattr(self, '_cam_D'):
             if 'cam_params' in info:
                 self._cam_K = info['cam_params']['K']
@@ -85,25 +87,43 @@ class MotionDiMPLT(DiMPLT):
                 # original
                 # Extract backbone features
                 t_s = time.time()
+                
+                # time bottleneck
+                tic = time.time()
                 backbone_feat, sample_coords, im_patches = self.extract_backbone_features(im, self.get_centered_sample_pos(),
                                                                                           self.target_scale * self.params.scale_factors,
                                                                                           self.img_sample_sz)
+                toc = time.time()
+                print('extract backbone feat cost {} sec'.format(toc - tic))
+                
                 # Extract classification features
+                tic = time.time()
                 test_x = self.get_classification_features(
                     backbone_feat)  # 512 x 18 x 18
+                toc = time.time()
+                print('extract cls feat cost {} sec'.format(toc - tic))
 
                 # Location of sample
+                tic = time.time()
                 sample_pos, sample_scales = self.get_sample_location(
                     sample_coords)
+                toc = time.time()
+                print('loc sampling cost {} sec'.format(toc - tic))
 
                 # Compute classification scores
+                tic = time.time()
                 scores_raw = self.classify_target(test_x)  # 19 x 19
+                toc = time.time()
+                print('cls target cost {} sec'.format(toc - tic))
 
                 # Localize the target
+                tic = time.time()
                 translation_vec, scale_ind, s, flag = self.localize_target(
                     scores_raw, sample_pos, sample_scales)
                 new_pos = sample_pos[scale_ind, :] + translation_vec
-                
+                toc = time.time()
+                print('locate target cost {} sec'.format(toc - tic))
+
                 t_e = time.time()
                 print('original short-term tracking costs {} sec'.format(t_e - t_s))
 
@@ -330,7 +350,7 @@ class MotionDiMPLT(DiMPLT):
                 new_pos = list_new_pos[find_i]
         t_e = time.time()
         print('re-detection costs {} sec'.format(t_e - t_s))
-        
+
         # Update position and scale
         t_s = time.time()
         if flag != 'not_found':
@@ -352,7 +372,7 @@ class MotionDiMPLT(DiMPLT):
         hard_negative = (flag == 'hard_negative')
         learning_rate = self.params.get(
             'hard_negative_learning_rate', None) if hard_negative else None
-        
+
         if update_flag and self.params.get('update_classifier', False):
             # early sample (redetected) is not updated
             if self.cnt_track >= self.params.get('no_update_early_redetection', 0):
@@ -580,9 +600,13 @@ class MotionDiMPLT(DiMPLT):
         #     confidence = max_score
 
         # print(flag)
+
+        torch.cuda.synchronize()
+        t_last = time.time()
         out = {'target_bbox': output_state,
                #    'confidence': confidence,
-               'score': max_score}
+               'score': max_score,
+               'time': t_last - t_first}
 
         return out
 
